@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FindAllPlace by Argul</title>
+    <meta name="description" content="Encuentra artículos en los remates activos de Bavastronline y Subastas Castells.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="hero-header">
+            <div class="hero-content">
+                <h1>FindAllPlace <span>by Argul</span></h1>
+                <p class="subtitle">Busca en <strong>Bavastro</strong>, <strong>Castells</strong> & <strong>Arechaga</strong> simultáneamente.</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="search-section">
+                <form id="searchForm" class="search-form">
+                    <div class="input-group full-width">
+                        <label for="keywords">Palabras Clave (separadas por espacio)</label>
+                        <input type="text" id="keywords" placeholder="Ej: oro anillo rolex" required>
+                        <div class="tag-chips">
+                            <span class="tag-chip" data-word="bronce">bronce</span>
+                            <span class="tag-chip" data-word="hierro">hierro</span>
+                            <span class="tag-chip" data-word="forjado">forjado</span>
+                            <span class="tag-chip" data-word="piedra">piedra</span>
+                            <span class="tag-chip" data-word="antiguo">antiguo</span>
+                            <span class="tag-chip" data-word="pinotea">pinotea</span>
+                            <span class="tag-chip" data-word="madera">madera</span>
+                            <span class="tag-chip" data-word="escultura">escultura</span>
+                        </div>
+                    </div>
+                    <div class="input-group full-width">
+                        <label for="minPrice">Precio mínimo en $ (pesos) — USD 25 ≈ $ 1.000</label>
+                        <input type="number" id="minPrice" placeholder="1000" value="1000" min="0">
+                    </div>
+                    <button type="submit" class="search-btn">
+                        <span class="btn-text">Buscar Artículos</span>
+                    </button>
+                </form>
+            </section>
+
+            <section id="loadingSection" class="loading-section hidden">
+                <div class="spinner"></div>
+                <p>Buscando en remates y filtrando artículos...</p>
+            </section>
+
+            <section id="errorSection" class="error-section hidden">
+                <p id="errorMessage"></p>
+            </section>
+
+            <section id="resultsSection" class="results-section hidden">
+                <div class="results-header">
+                    <h2>Resultados Encontrados</h2>
+                    <span id="resultsCount" class="badge">0 artículos</span>
+                </div>
+                <div id="resultsGrid" class="results-grid">
+                    <!-- Cards will be injected here via JS -->
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
