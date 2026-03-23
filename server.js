@@ -59,7 +59,7 @@ function loadCache() {
     try {
         if (fs.existsSync(CACHE_FILE)) return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
     } catch (e) { console.error('Error cargando cache:', e.message); }
-    return { bavastro: {}, arechaga: {}, castells: {} };
+    return { bavastro: {}, arechaga: {}, castells: {}, reysubastas: {} };
 }
 
 function saveCache() {
@@ -274,6 +274,96 @@ async function fetchArechagaLots(keywordList, minPricePesos, USD_TO_PESOS) {
     return allMatchingLots;
 }
 
+// ─── Rey Subastas ─────────────────────────────────────────────────────────────
+
+async function fetchReySubastasLots(keywordList, minPricePesos, USD_TO_PESOS) {
+    const allMatchingLots = [];
+    try {
+        console.log('ReySubastas: obteniendo remates activos...');
+        const auctionsRes = await axios.get('https://api.reysubastas.com/public/auctions/');
+        const activeAuctions = (auctionsRes.data.data && auctionsRes.data.data.inProgress) || [];
+        const activeIds = new Set(activeAuctions.map(a => String(a.id)));
+
+        for (const id of Object.keys(cache.reysubastas)) {
+            if (!activeIds.has(id)) {
+                console.log(`ReySubastas: remate ${id} finalizado, eliminado del cache`);
+                delete cache.reysubastas[id];
+            }
+        }
+
+        const auctionResults = await Promise.all(activeAuctions.map(async (auction) => {
+            const auctionId = String(auction.id);
+            const isUsd = auction.money === 2;
+            const auctionCache = cache.reysubastas[auctionId] || {};
+            const { uncached, cachedWithMatches, skip } = getCacheStatus(auctionCache, keywordList);
+
+            if (skip) {
+                console.log(`ReySubastas: remate ${auctionId} saltado (sin coincidencias en cache)`);
+                return [];
+            }
+
+            console.log(`ReySubastas: remate ${auctionId} — scan: [${uncached.join(',')}] | refresh: [${cachedWithMatches.join(',')}]`);
+
+            if (!cache.reysubastas[auctionId]) cache.reysubastas[auctionId] = {};
+            for (const kw of uncached) cache.reysubastas[auctionId][kw] = [];
+
+            const cachedLotIds = new Set(
+                cachedWithMatches.flatMap(kw => (auctionCache[kw] || []).map(String))
+            );
+
+            const matchingLots = [];
+            try {
+                const auctionRes = await axios.get(`https://api.reysubastas.com/public/auctions/${auctionId}`);
+                const lots = (auctionRes.data.data && auctionRes.data.data.lots) || [];
+
+                for (const lot of lots) {
+                    const lotId = String(lot.id);
+                    const titleText = (lot.title || '').toLowerCase();
+                    const descText = (lot.description || '').toLowerCase();
+                    let isMatch = false;
+
+                    for (const kw of uncached) {
+                        if (titleText.includes(kw) || descText.includes(kw)) {
+                            cache.reysubastas[auctionId][kw].push(lotId);
+                            isMatch = true;
+                        }
+                    }
+
+                    if (cachedLotIds.has(lotId)) isMatch = true;
+
+                    if (isMatch) {
+                        const baseP = parseFloat(lot.price_base) || 0;
+                        const currP = parseFloat(lot.offer) || parseFloat(lot.bestOffer) || 0;
+                        const maxP = Math.max(baseP, currP);
+                        const maxPInPesos = isUsd ? maxP * USD_TO_PESOS : maxP;
+                        if (maxPInPesos < minPricePesos) continue;
+
+                        matchingLots.push({
+                            source: 'ReySubastas',
+                            auctionId: auction.id,
+                            auctionName: auction.title,
+                            lotId: lot.id,
+                            description: lot.title || lot.description,
+                            imageUrl: lot.image_lot_thumb || lot.image_lot || '',
+                            url: `https://reysubastas.com/lotes/${lot.id}`,
+                            basePrice: lot.price_base,
+                            currentPrice: lot.offer || lot.bestOffer || 0,
+                            currencyPrefix: isUsd ? 'USD' : '$'
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error(`ReySubastas: error procesando remate ${auctionId}:`, err.message);
+            }
+            return matchingLots;
+        }));
+        allMatchingLots.push(...auctionResults.flat());
+    } catch (error) {
+        console.error('ReySubastas Error:', error.message);
+    }
+    return allMatchingLots;
+}
+
 // ─── Castells ─────────────────────────────────────────────────────────────────
 
 async function fetchCastellsLots(keywordList, minPricePesos, USD_TO_PESOS) {
@@ -412,15 +502,16 @@ app.get('/api/search', async (req, res) => {
 
         console.log(`\nBuscando [${uncachedKeywords.join(', ')}] (cache: [${cachedKeywords.join(', ')}]) minPrice=${minPricePesos}...`);
 
-        const [bavastroLots, castellsLots, arechagaLots] = await Promise.all([
+        const [bavastroLots, castellsLots, arechagaLots, reySubastasLots] = await Promise.all([
             fetchBavastroLots(uncachedKeywords, minPricePesos, USD_TO_PESOS),
             fetchCastellsLots(uncachedKeywords, minPricePesos, USD_TO_PESOS),
-            fetchArechagaLots(uncachedKeywords, minPricePesos, USD_TO_PESOS)
+            fetchArechagaLots(uncachedKeywords, minPricePesos, USD_TO_PESOS),
+            fetchReySubastasLots(uncachedKeywords, minPricePesos, USD_TO_PESOS)
         ]);
 
         saveCache();
 
-        const newLots = [...bavastroLots, ...castellsLots, ...arechagaLots];
+        const newLots = [...bavastroLots, ...castellsLots, ...arechagaLots, ...reySubastasLots];
 
         // Cachear cada keyword nueva por separado
         for (const kw of uncachedKeywords) {
