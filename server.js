@@ -78,6 +78,77 @@ function getCacheStatus(auctionCache, keywordList) {
     return { uncached, cachedWithMatches, skip };
 }
 
+// ─── Prado Remates ────────────────────────────────────────────────────────────
+// Usa WooCommerce + plugin "ultimate-woocommerce-auction-pro".
+// No tiene API REST propia → se busca por el endpoint de búsqueda de WooCommerce,
+// se parsea el HTML y se filtran lotes activos (sin clase winning_bid).
+
+function decodeHtmlEntities(str) {
+    return str
+        .replace(/&#8211;/g, '-').replace(/&#8212;/g, '—').replace(/&#8216;/g, "'")
+        .replace(/&#8217;/g, "'").replace(/&#8220;/g, '"').replace(/&#8221;/g, '"')
+        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n))
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ').trim();
+}
+
+async function fetchPradoRematesLots(keywordList, minPricePesos) {
+    const allMatchingLots = [];
+    try {
+        console.log('PradoRemates: buscando...');
+        const kwResults = await Promise.all(keywordList.map(async (kw) => {
+            const lots = [];
+            let page = 1;
+            let hasMore = true;
+            while (hasMore) {
+                const searchUrl = `https://pradorematesenlinea.uy/?s=${encodeURIComponent(kw)}&post_type=product${page > 1 ? `&paged=${page}` : ''}`;
+                const r = await axios.get(searchUrl, { timeout: 12000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+                const html = r.data;
+                const items = [...html.matchAll(/<li[^>]*class="[^"]*product[^"]*"[^>]*>([\s\S]+?)<\/li>/g)];
+
+                for (const item of items) {
+                    const raw = item[1];
+                    if (raw.includes('winning_bid')) continue; // lote cerrado/ganado
+
+                    const title = (raw.match(/woocommerce-loop-product__title[^>]*>([^<]+)/) || [])[1];
+                    const url = (raw.match(/href="(https:\/\/pradorematesenlinea[^"]+)"/) || [])[1];
+                    const img = (raw.match(/<img[^>]+src="([^"]+)"/) || [])[1];
+                    const productId = (raw.match(/data-product_id="(\d+)"/) || [])[1];
+                    const bdi = raw.match(/<bdi>([\s\S]+?)<\/bdi>/);
+                    const rawPrice = bdi
+                        ? bdi[1].replace(/<[^>]+>/g, '').replace(/&#36;|&nbsp;/g, '').replace(/\./g, '').trim()
+                        : '0';
+                    const price = parseFloat(rawPrice) || 0;
+
+                    if (!title || !url || price < minPricePesos) continue;
+
+                    lots.push({
+                        source: 'PradoRemates',
+                        auctionId: 'prado',
+                        auctionName: 'Prado Remates en Línea',
+                        lotId: productId || url,
+                        description: decodeHtmlEntities(title),
+                        imageUrl: img || '',
+                        url,
+                        basePrice: price,
+                        currentPrice: price,
+                        currencyPrefix: '$'
+                    });
+                }
+
+                hasMore = html.includes('class="next page-numbers"') && items.length > 0;
+                page++;
+                if (page > 5) hasMore = false; // límite de seguridad
+            }
+            return lots;
+        }));
+        allMatchingLots.push(...kwResults.flat());
+    } catch (e) {
+        console.error('PradoRemates Error:', e.message);
+    }
+    return allMatchingLots;
+}
+
 // ─── Bavastro ─────────────────────────────────────────────────────────────────
 
 async function fetchBavastroLots(keywordList, minPricePesos, USD_TO_PESOS) {
@@ -502,16 +573,17 @@ app.get('/api/search', async (req, res) => {
 
         console.log(`\nBuscando [${uncachedKeywords.join(', ')}] (cache: [${cachedKeywords.join(', ')}]) minPrice=${minPricePesos}...`);
 
-        const [bavastroLots, castellsLots, arechagaLots, reySubastasLots] = await Promise.all([
+        const [bavastroLots, castellsLots, arechagaLots, reySubastasLots, pradoLots] = await Promise.all([
             fetchBavastroLots(uncachedKeywords, minPricePesos, USD_TO_PESOS),
             fetchCastellsLots(uncachedKeywords, minPricePesos, USD_TO_PESOS),
             fetchArechagaLots(uncachedKeywords, minPricePesos, USD_TO_PESOS),
-            fetchReySubastasLots(uncachedKeywords, minPricePesos, USD_TO_PESOS)
+            fetchReySubastasLots(uncachedKeywords, minPricePesos, USD_TO_PESOS),
+            fetchPradoRematesLots(uncachedKeywords, minPricePesos)
         ]);
 
         saveCache();
 
-        const newLots = [...bavastroLots, ...castellsLots, ...arechagaLots, ...reySubastasLots];
+        const newLots = [...bavastroLots, ...castellsLots, ...arechagaLots, ...reySubastasLots, ...pradoLots];
 
         // Cachear cada keyword nueva por separado
         for (const kw of uncachedKeywords) {
