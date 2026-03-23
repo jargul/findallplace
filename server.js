@@ -13,6 +13,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,72 +22,141 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
+// ─── Cache ────────────────────────────────────────────────────────────────────
+// Estructura: { bavastro: { [auctionId]: { [keyword]: [lotId, ...] } }, arechaga: {}, castells: {} }
+// [] (array vacío) = "ya se buscó esta keyword en este remate y no hubo coincidencias"
+// clave ausente    = "todavía no se buscó"
+//
+// Lógica por remate:
+//   - Si TODAS las keywords tienen [] en cache → skip total (no se hace ningún fetch)
+//   - Si alguna keyword tiene matches en cache → se re-fetcha el remate para actualizar precios
+//   - Si alguna keyword no está en cache → full scan del remate
+//
+// Expiración: cada búsqueda obtiene los remates activos frescos y elimina del cache
+// cualquier remate que ya no esté activo.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CACHE_FILE = path.join(__dirname, 'search_cache.json');
+
+function loadCache() {
+    try {
+        if (fs.existsSync(CACHE_FILE)) return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+    } catch (e) { console.error('Error cargando cache:', e.message); }
+    return { bavastro: {}, arechaga: {}, castells: {} };
+}
+
+function saveCache() {
+    try { fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2)); }
+    catch (e) { console.error('Error guardando cache:', e.message); }
+}
+
+let cache = loadCache();
+
+// Dado el cache de un remate y la lista de keywords, determina qué hay que hacer
+function getCacheStatus(auctionCache, keywordList) {
+    const uncached = keywordList.filter(kw => !(kw in auctionCache));
+    const cachedWithMatches = keywordList.filter(kw => kw in auctionCache && auctionCache[kw].length > 0);
+    // skip si todas las keywords ya se buscaron y ninguna tuvo resultado
+    const skip = uncached.length === 0 && cachedWithMatches.length === 0;
+    return { uncached, cachedWithMatches, skip };
+}
+
+// ─── Bavastro ─────────────────────────────────────────────────────────────────
+
 async function fetchBavastroLots(keywordList, minPricePesos, USD_TO_PESOS) {
     const allMatchingLots = [];
     try {
-        console.log('Fetching active auctions list from Bavastro...');
-        const auctionsUrl = 'https://api-parseo.bavastronline.com/published_auctions/?limit=100';
-        const auctionsRes = await axios.get(auctionsUrl);
+        console.log('Bavastro: obteniendo remates activos...');
+        const auctionsRes = await axios.get('https://api-parseo.bavastronline.com/published_auctions/?limit=100');
         const activeAuctions = (auctionsRes.data.results || []).filter(a => a.state === 'active' || a.active === true);
-        
+        const activeIds = new Set(activeAuctions.map(a => String(a.id)));
+
+        // Expirar remates terminados
+        for (const id of Object.keys(cache.bavastro)) {
+            if (!activeIds.has(id)) {
+                console.log(`Bavastro: remate ${id} finalizado, eliminado del cache`);
+                delete cache.bavastro[id];
+            }
+        }
+
         for (const auction of activeAuctions) {
-            const auctionId = auction.id;
+            const auctionId = String(auction.id);
+            const auctionCache = cache.bavastro[auctionId] || {};
+            const { uncached, cachedWithMatches, skip } = getCacheStatus(auctionCache, keywordList);
+
+            if (skip) {
+                console.log(`Bavastro: remate ${auctionId} saltado (sin coincidencias en cache)`);
+                continue;
+            }
+
+            console.log(`Bavastro: remate ${auctionId} — scan nuevas keywords: [${uncached.join(',')}] | refresh precios: [${cachedWithMatches.join(',')}]`);
+
+            if (!cache.bavastro[auctionId]) cache.bavastro[auctionId] = {};
+            for (const kw of uncached) cache.bavastro[auctionId][kw] = [];
+
+            const cachedLotIds = new Set(
+                cachedWithMatches.flatMap(kw => (auctionCache[kw] || []).map(String))
+            );
+
             try {
                 let page = 1;
                 let hasMore = true;
-                
+
                 while (hasMore) {
                     const lotsUrl = `https://api-parseo.bavastronline.com/auctions/${auctionId}/lots/published/?page=${page}&sort=lot_number&page_size=100`;
                     const lotsRes = await axios.get(lotsUrl);
                     const lots = lotsRes.data.results || [];
-                    
-                    if (lots.length === 0) {
-                        hasMore = false;
-                        break;
-                    }
+
+                    if (lots.length === 0) { hasMore = false; break; }
 
                     for (const lotItem of lots) {
+                        const lotId = String(lotItem.id);
                         const description = (lotItem.lot.description || '').toLowerCase();
-                        const matchesKeyword = keywordList.some(kw => description.includes(kw));
-                        
-                        if (matchesKeyword) {
-                            let imageUrl = '';
-                            if (lotItem.lot.images && lotItem.lot.images.length > 0) {
-                                imageUrl = lotItem.lot.images[0].image;
+                        let isMatch = false;
+
+                        // Full scan para keywords sin cache
+                        for (const kw of uncached) {
+                            if (description.includes(kw)) {
+                                cache.bavastro[auctionId][kw].push(lotId);
+                                isMatch = true;
                             }
-                            
+                        }
+
+                        // Refresh de precios para lotes ya cacheados
+                        if (cachedLotIds.has(lotId)) isMatch = true;
+
+                        if (isMatch) {
                             const currencyPrefix = lotItem.lot.currency ? lotItem.lot.currency.prefix : '$';
                             const isUsd = currencyPrefix && currencyPrefix.toUpperCase().includes('USD');
                             const baseP = parseFloat(lotItem.lot.base_price) || 0;
                             const currP = parseFloat(lotItem.best_price) || 0;
                             const maxP = Math.max(baseP, currP);
                             const maxPInPesos = isUsd ? maxP * USD_TO_PESOS : maxP;
-                            
                             if (maxPInPesos < minPricePesos) continue;
-                            
+
+                            let imageUrl = '';
+                            if (lotItem.lot.images && lotItem.lot.images.length > 0) imageUrl = lotItem.lot.images[0].image;
+
                             allMatchingLots.push({
                                 source: 'Bavastro',
-                                auctionId: auctionId,
+                                auctionId: auction.id,
                                 auctionName: lotItem.lot.auction.name,
                                 lotId: lotItem.id,
                                 description: lotItem.lot.description,
-                                imageUrl: imageUrl,
+                                imageUrl,
                                 url: `https://www.bavastronline.com.uy/lot/${lotItem.id}`,
                                 basePrice: lotItem.lot.base_price,
                                 currentPrice: lotItem.best_price,
-                                currencyPrefix: currencyPrefix
+                                currencyPrefix
                             });
                         }
                     }
 
-                    if (lotsRes.data.next) {
-                        page++;
-                    } else {
-                        hasMore = false;
-                    }
+                    hasMore = !!lotsRes.data.next;
+                    page++;
                 }
             } catch (err) {
-                console.error(`Bavastro: Error procesando remate ${auctionId}:`, err.message);
+                console.error(`Bavastro: error procesando remate ${auctionId}:`, err.message);
             }
         }
     } catch (error) {
@@ -95,36 +165,73 @@ async function fetchBavastroLots(keywordList, minPricePesos, USD_TO_PESOS) {
     return allMatchingLots;
 }
 
+// ─── Arechaga ─────────────────────────────────────────────────────────────────
+
 async function fetchArechagaLots(keywordList, minPricePesos, USD_TO_PESOS) {
     const allMatchingLots = [];
     try {
-        console.log('Fetching active auctions list from Arechaga...');
+        console.log('Arechaga: obteniendo remates activos...');
         const auctionsRes = await axios.get('https://api.arechaga.com.uy/public/auctions/');
         const activeAuctions = (auctionsRes.data.data && auctionsRes.data.data.inProgress) || [];
+        const activeIds = new Set(activeAuctions.map(a => String(a.id)));
+
+        // Expirar remates terminados
+        for (const id of Object.keys(cache.arechaga)) {
+            if (!activeIds.has(id)) {
+                console.log(`Arechaga: remate ${id} finalizado, eliminado del cache`);
+                delete cache.arechaga[id];
+            }
+        }
 
         for (const auction of activeAuctions) {
-            const auctionId = auction.id;
+            const auctionId = String(auction.id);
             const isUsd = auction.money === 2;
+            const auctionCache = cache.arechaga[auctionId] || {};
+            const { uncached, cachedWithMatches, skip } = getCacheStatus(auctionCache, keywordList);
+
+            if (skip) {
+                console.log(`Arechaga: remate ${auctionId} saltado (sin coincidencias en cache)`);
+                continue;
+            }
+
+            console.log(`Arechaga: remate ${auctionId} — scan nuevas keywords: [${uncached.join(',')}] | refresh precios: [${cachedWithMatches.join(',')}]`);
+
+            if (!cache.arechaga[auctionId]) cache.arechaga[auctionId] = {};
+            for (const kw of uncached) cache.arechaga[auctionId][kw] = [];
+
+            const cachedLotIds = new Set(
+                cachedWithMatches.flatMap(kw => (auctionCache[kw] || []).map(String))
+            );
+
             try {
                 const auctionRes = await axios.get(`https://api.arechaga.com.uy/public/auctions/${auctionId}`);
                 const lots = (auctionRes.data.data && auctionRes.data.data.lots) || [];
 
                 for (const lot of lots) {
+                    const lotId = String(lot.id);
                     const titleText = (lot.title || '').toLowerCase();
                     const descText = (lot.description || '').toLowerCase();
-                    const matchesKeyword = keywordList.some(kw => titleText.includes(kw) || descText.includes(kw));
+                    let isMatch = false;
 
-                    if (matchesKeyword) {
+                    for (const kw of uncached) {
+                        if (titleText.includes(kw) || descText.includes(kw)) {
+                            cache.arechaga[auctionId][kw].push(lotId);
+                            isMatch = true;
+                        }
+                    }
+
+                    if (cachedLotIds.has(lotId)) isMatch = true;
+
+                    if (isMatch) {
                         const baseP = parseFloat(lot.price_base) || 0;
                         const currP = parseFloat(lot.offer) || parseFloat(lot.bestOffer) || 0;
                         const maxP = Math.max(baseP, currP);
                         const maxPInPesos = isUsd ? maxP * USD_TO_PESOS : maxP;
-
                         if (maxPInPesos < minPricePesos) continue;
 
                         allMatchingLots.push({
                             source: 'Arechaga',
-                            auctionId: auctionId,
+                            auctionId: auction.id,
                             auctionName: auction.title,
                             lotId: lot.id,
                             description: lot.title || lot.description,
@@ -137,7 +244,7 @@ async function fetchArechagaLots(keywordList, minPricePesos, USD_TO_PESOS) {
                     }
                 }
             } catch (err) {
-                console.error(`Arechaga: Error procesando remate ${auctionId}:`, err.message);
+                console.error(`Arechaga: error procesando remate ${auctionId}:`, err.message);
             }
         }
     } catch (error) {
@@ -146,46 +253,85 @@ async function fetchArechagaLots(keywordList, minPricePesos, USD_TO_PESOS) {
     return allMatchingLots;
 }
 
+// ─── Castells ─────────────────────────────────────────────────────────────────
+
 async function fetchCastellsLots(keywordList, minPricePesos, USD_TO_PESOS) {
     const allMatchingLots = [];
     try {
-        console.log('Fetching active auctions list from Castells...');
+        console.log('Castells: obteniendo remates activos...');
         const homeRes = await axios.get('https://subastascastells.com/frontend.home.aspx', {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
         });
-        
+
         const html = homeRes.data;
         const match = html.match(/"vSUBASTASENPROGRESO":(\[.+?\])/);
-        
+
         if (match && match[1]) {
             const activeAuctions = JSON.parse(match[1]);
-            
+            const activeIds = new Set(
+                activeAuctions.filter(a => a.RemateId).map(a => String(a.RemateId))
+            );
+
+            // Expirar remates terminados
+            for (const id of Object.keys(cache.castells)) {
+                if (!activeIds.has(id)) {
+                    console.log(`Castells: remate ${id} finalizado, eliminado del cache`);
+                    delete cache.castells[id];
+                }
+            }
+
             for (const auction of activeAuctions) {
                 if (!auction.RemateId) continue;
-                const testId = auction.RemateId;
+                const auctionId = String(auction.RemateId);
+                const auctionCache = cache.castells[auctionId] || {};
+                const { uncached, cachedWithMatches, skip } = getCacheStatus(auctionCache, keywordList);
+
+                if (skip) {
+                    console.log(`Castells: remate ${auctionId} saltado (sin coincidencias en cache)`);
+                    continue;
+                }
+
+                console.log(`Castells: remate ${auctionId} — scan nuevas keywords: [${uncached.join(',')}] | refresh precios: [${cachedWithMatches.join(',')}]`);
+
+                if (!cache.castells[auctionId]) cache.castells[auctionId] = {};
+                for (const kw of uncached) cache.castells[auctionId][kw] = [];
+
+                const cachedLotIds = new Set(
+                    cachedWithMatches.flatMap(kw => (auctionCache[kw] || []).map(String))
+                );
+
                 try {
-                    const lotsUrl = `https://subastascastells.com/rest/API/Remate/lotes?Remateid=${testId}&RemateTipo=1&Cerrado=false`;
+                    const lotsUrl = `https://subastascastells.com/rest/API/Remate/lotes?Remateid=${auctionId}&RemateTipo=1&Cerrado=false`;
                     const lotsRes = await axios.get(lotsUrl, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                        }
+                        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
                     });
-                    
-                    const lots = (lotsRes.data && lotsRes.data.data) ? lotsRes.data.data : (Array.isArray(lotsRes.data) ? lotsRes.data : []);
+
+                    const lots = (lotsRes.data && lotsRes.data.data)
+                        ? lotsRes.data.data
+                        : (Array.isArray(lotsRes.data) ? lotsRes.data : []);
+
                     for (const lot of lots) {
+                        const lotId = String(lot.LoteId);
                         const description = (lot.LoteDescripcion || '').toLowerCase();
-                        const matchesKeyword = keywordList.some(kw => description.includes(kw));
-                        
-                        if (matchesKeyword) {
+                        let isMatch = false;
+
+                        for (const kw of uncached) {
+                            if (description.includes(kw)) {
+                                cache.castells[auctionId][kw].push(lotId);
+                                isMatch = true;
+                            }
+                        }
+
+                        if (cachedLotIds.has(lotId)) isMatch = true;
+
+                        if (isMatch) {
                             const isUsd = (lot.LotePrecioSalidaMonedaWF || '').toUpperCase().includes('USD');
                             const baseP = parseFloat(lot.LotePrecioSalidaValorWF || lot.LotePrecioSalida) || 0;
                             const currP = parseFloat(lot.ValorActual) || 0;
                             const maxP = Math.max(baseP, currP);
                             const maxPInPesos = isUsd ? maxP * USD_TO_PESOS : maxP;
                             if (maxPInPesos < minPricePesos) continue;
-                            
+
                             allMatchingLots.push({
                                 source: 'Castells',
                                 auctionId: auction.RemateId,
@@ -201,11 +347,11 @@ async function fetchCastellsLots(keywordList, minPricePesos, USD_TO_PESOS) {
                         }
                     }
                 } catch (e) {
-                    console.error(`Castells: Error procesando remate ${testId}:`, e.message);
+                    console.error(`Castells: error procesando remate ${auctionId}:`, e.message);
                 }
             }
         } else {
-             console.error('Castells Error: vSUBASTASENPROGRESO no encontrado en el HTML.');
+            console.error('Castells Error: vSUBASTASENPROGRESO no encontrado en el HTML.');
         }
     } catch (e) {
         console.error('Castells Error:', e.message);
@@ -213,20 +359,17 @@ async function fetchCastellsLots(keywordList, minPricePesos, USD_TO_PESOS) {
     return allMatchingLots;
 }
 
-// API route to search auctions
+// ─── API ──────────────────────────────────────────────────────────────────────
+
 app.get('/api/search', async (req, res) => {
     try {
         const { keywords, minPrice } = req.query;
-        
-        if (!keywords) {
-            return res.status(400).json({ error: 'Faltan parámetros: keywords' });
-        }
+        if (!keywords) return res.status(400).json({ error: 'Faltan parámetros: keywords' });
 
         const keywordList = keywords.toLowerCase().split(/\s+/).filter(k => k);
-        // minPrice default 1000 pesos; USD 25 = 1000 pesos
         const minPricePesos = minPrice !== undefined && minPrice !== '' ? parseFloat(minPrice) : 1000;
         const USD_TO_PESOS = 40;
-        console.log(`Searching for [${keywordList.join(', ')}] with minPrice=${minPricePesos} pesos in multiple sources...`);
+        console.log(`\nBuscando [${keywordList.join(', ')}] minPrice=${minPricePesos}...`);
 
         const [bavastroLots, castellsLots, arechagaLots] = await Promise.all([
             fetchBavastroLots(keywordList, minPricePesos, USD_TO_PESOS),
@@ -234,8 +377,10 @@ app.get('/api/search', async (req, res) => {
             fetchArechagaLots(keywordList, minPricePesos, USD_TO_PESOS)
         ]);
 
-        // Unify
+        saveCache();
+
         const allMatchingLots = [...bavastroLots, ...castellsLots, ...arechagaLots];
+        console.log(`Resultados: ${allMatchingLots.length} lotes encontrados`);
         res.json({ results: allMatchingLots });
     } catch (error) {
         console.error('Error in /api/search:', error);
