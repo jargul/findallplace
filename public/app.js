@@ -93,7 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? `<img src="${item.imageUrl}" alt="Lote" class="card-image" loading="lazy">`
                     : `<div class="card-image-placeholder">Sin Foto</div>`;
                 
-                const sourceClass = item.source === 'Castells' ? 'badge-castells' : item.source === 'Arechaga' ? 'badge-arechaga' : 'badge-bavastro';
+                const sourceClassMap = { Bavastro: 'badge-bavastro', Castells: 'badge-castells', Arechaga: 'badge-arechaga', ReySubastas: 'badge-reysubastas', PradoRemates: 'badge-pradoremates' };
+                const sourceClass = sourceClassMap[item.source] || 'badge-bavastro';
                 
                 card.innerHTML = `
                     <div class="source-badge ${sourceClass}">${item.source}</div>

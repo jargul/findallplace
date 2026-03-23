@@ -246,6 +246,14 @@ input:focus {
     background: linear-gradient(135deg, #6366f1, #4f46e5);
 }
 
+.badge-reysubastas {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.badge-pradoremates {
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+}
+
 .card:hover {
     transform: translateY(-5px);
     border-color: var(--accent-color);
