@@ -127,6 +127,8 @@ async function fetchPradoRematesLots(keywordList, minPricePesos) {
                         auctionId: 'prado',
                         auctionName: 'Prado Remates en Línea',
                         lotId: productId || url,
+                        lotNumber: productId,
+                        endDate: null, // Prado is scraped HTML, no easy end date
                         description: decodeHtmlEntities(title),
                         imageUrl: img || '',
                         url,
@@ -224,11 +226,22 @@ async function fetchBavastroLots(keywordList, minPricePesos, USD_TO_PESOS) {
                             let imageUrl = '';
                             if (lotItem.lot.images && lotItem.lot.images.length > 0) imageUrl = lotItem.lot.images[0].image;
 
+                            let rawDate = lotItem.end_date || lotItem.lot.end_date || auction.end_date || '';
+                            let formattedDate = '';
+                            if (rawDate) {
+                                try {
+                                    const d = new Date(rawDate);
+                                    if (!isNaN(d)) formattedDate = d.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                                } catch(e){}
+                            }
+
                             matchingLots.push({
                                 source: 'Bavastro',
                                 auctionId: auction.id,
                                 auctionName: lotItem.lot.auction.name,
                                 lotId: lotItem.id,
+                                lotNumber: lotItem.lot_number || lotItem.lot.number || lotItem.number,
+                                endDate: formattedDate,
                                 description: lotItem.lot.description,
                                 imageUrl,
                                 url: `https://www.bavastronline.com.uy/lot/${lotItem.id}`,
@@ -319,11 +332,25 @@ async function fetchArechagaLots(keywordList, minPricePesos, USD_TO_PESOS) {
                         const maxPInPesos = isUsd ? maxP * USD_TO_PESOS : maxP;
                         if (maxPInPesos < minPricePesos) continue;
 
+                        let rawDate = lot.date_close || auction.date_to || '';
+                        let formattedDate = '';
+                        if (rawDate) {
+                            try {
+                                const d = new Date(rawDate);
+                                if (!isNaN(d)) formattedDate = d.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                            } catch(e){}
+                        }
+
+                        // Arechaga/ReySubastas text title often has the lot number if it's not in id_lot easily, but usually id_lot is the lot number or order
+                        let lotNum = lot.id_lot || '';
+
                         matchingLots.push({
                             source: 'Arechaga',
                             auctionId: auction.id,
                             auctionName: auction.title,
                             lotId: lot.id,
+                            lotNumber: lotNum,
+                            endDate: formattedDate,
                             description: lot.title || lot.description,
                             imageUrl: lot.image_lot_thumb || lot.image_lot || '',
                             url: `https://arechaga.com.uy/lotes/${lot.id}`,
@@ -409,11 +436,24 @@ async function fetchReySubastasLots(keywordList, minPricePesos, USD_TO_PESOS) {
                         const maxPInPesos = isUsd ? maxP * USD_TO_PESOS : maxP;
                         if (maxPInPesos < minPricePesos) continue;
 
+                        let rawDate = lot.date_close || auction.date_to || '';
+                        let formattedDate = '';
+                        if (rawDate) {
+                            try {
+                                const d = new Date(rawDate);
+                                if (!isNaN(d)) formattedDate = d.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                            } catch(e){}
+                        }
+
+                        let lotNum = lot.id_lot || '';
+
                         matchingLots.push({
                             source: 'ReySubastas',
                             auctionId: auction.id,
                             auctionName: auction.title,
                             lotId: lot.id,
+                            lotNumber: lotNum,
+                            endDate: formattedDate,
                             description: lot.title || lot.description,
                             imageUrl: lot.image_lot_thumb || lot.image_lot || '',
                             url: `https://reysubastas.com/lotes/${lot.id}`,
@@ -515,11 +555,28 @@ async function fetchCastellsLots(keywordList, minPricePesos, USD_TO_PESOS) {
                                 const maxPInPesos = isUsd ? maxP * USD_TO_PESOS : maxP;
                                 if (maxPInPesos < minPricePesos) continue;
 
+                                let rawDate = lot.LoteCierre || lot.LoteCierreWF || auction.RemateCierre || '';
+                                let formattedDate = '';
+                                if (rawDate) {
+                                    if (rawDate.includes('/Date(')) {
+                                        try {
+                                            const ts = parseInt(rawDate.match(/\d+/)[0], 10);
+                                            formattedDate = new Date(ts).toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                                        } catch(e){}
+                                    } else {
+                                        // Might be already formatted or parseable
+                                        formattedDate = rawDate; // En Castells LoteCierreWF suele ser dd/mm/yyyy hh:mm
+                                        if (formattedDate.length > 10) formattedDate = formattedDate.substring(0, 10); // just keep the date part
+                                    }
+                                }
+
                                 matchingLots.push({
                                     source: 'Castells',
                                     auctionId: auction.RemateId,
                                     auctionName: auction.RemateNombre,
                                     lotId: lot.LoteId,
+                                    lotNumber: lot.LoteNumero,
+                                    endDate: formattedDate,
                                     description: lot.LoteDescripcion,
                                     imageUrl: lot.LoteImageUrl,
                                     url: `https://subastascastells.com/${lot.DetalleUrl}`,

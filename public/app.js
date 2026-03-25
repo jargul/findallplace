@@ -3,6 +3,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const keywordsInput = document.getElementById('keywords');
     const minPriceInput = document.getElementById('minPrice');
 
+    const btnSelectAllTags = document.getElementById('btnSelectAllTags');
+    const btnClearTags = document.getElementById('btnClearTags');
+
+    if (btnSelectAllTags) {
+        btnSelectAllTags.addEventListener('click', () => {
+            const allWords = Array.from(document.querySelectorAll('.tag-chip')).map(chip => chip.dataset.word);
+            
+            // Reemplazar el input pero asegurando que estén entre comillas dobles los que tienen espacios (Art Deco), no es necesario en este contexto porque se separan por espacio las búsquedas simples, pero para que no rompa, lo pasamos tal cual. NOTA: el backend parsea por split(/\s+/) con que si hay Art Deco se buscará Art y Deco. Para evitarlo mantendremos Art Deco... Espera, el servidor busca con regex split.
+            // Ojo, si el usuario tiene palabras en el input previas podrian combinarse.
+            keywordsInput.value = allWords.join(' ');
+            document.querySelectorAll('.tag-chip').forEach(chip => chip.classList.add('active'));
+        });
+    }
+
+    if (btnClearTags) {
+        btnClearTags.addEventListener('click', () => {
+            keywordsInput.value = '';
+            document.querySelectorAll('.tag-chip').forEach(chip => chip.classList.remove('active'));
+        });
+    }
+
     // Tag chips: clicking toggles a word in the keywords input
     document.querySelectorAll('.tag-chip').forEach(chip => {
         chip.addEventListener('click', () => {
@@ -75,6 +96,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe.toString()
+             .replace(/&/g, "&amp;")
+             .replace(/</g, "&lt;")
+             .replace(/>/g, "&gt;")
+             .replace(/"/g, "&quot;")
+             .replace(/'/g, "&#039;");
+    }
+
     function displayResults(results) {
         resultsCount.textContent = `${results.length} artículos`;
         
@@ -96,11 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const sourceClassMap = { Bavastro: 'badge-bavastro', Castells: 'badge-castells', Arechaga: 'badge-arechaga', ReySubastas: 'badge-reysubastas', PradoRemates: 'badge-pradoremates' };
                 const sourceClass = sourceClassMap[item.source] || 'badge-bavastro';
                 
+                const lotNumStr = item.lotNumber ? `Lote ${escapeHtml(item.lotNumber)}` : '';
+                const endDateStr = item.endDate ? ` | Termina: ${escapeHtml(item.endDate)}` : '';
+                
                 card.innerHTML = `
                     <div class="source-badge ${sourceClass}">${item.source}</div>
                     ${imageHtml}
                     <div class="card-content">
-                        <div class="card-auction">Remate ${item.auctionId}</div>
+                        <div class="card-auction">Remate ${item.auctionId}${endDateStr}</div>
+                        ${lotNumStr ? `<div class="card-lot-number" style="font-weight: 500; font-size: 0.9rem; margin-bottom: 0.2rem;">${lotNumStr}</div>` : ''}
                         <div class="card-desc">${escapeHtml(item.description)}</div>
                         <div class="card-footer">
                             <div>
@@ -122,13 +157,5 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsSec.classList.remove('hidden');
     }
     
-    function escapeHtml(unsafe) {
-        if (!unsafe) return '';
-        return unsafe
-             .replace(/&/g, "&amp;")
-             .replace(/</g, "&lt;")
-             .replace(/>/g, "&gt;")
-             .replace(/"/g, "&quot;")
-             .replace(/'/g, "&#039;");
-    }
+
 });
