@@ -1,4 +1,4 @@
-app = "findallplace"
+app = "BuscoLotes"
 primary_region = "gru"
 
 [build]
