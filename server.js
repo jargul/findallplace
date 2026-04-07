@@ -236,6 +236,7 @@ async function fetchBavastroLots(keywordList, minPricePesos, USD_TO_PESOS) {
                                 } catch(e){}
                             }
 
+                            const bavasIsNew = !cachedLotIds.has(lotId);
                             matchingLots.push({
                                 source: 'Bavastro',
                                 auctionId: auction.id,
@@ -248,7 +249,8 @@ async function fetchBavastroLots(keywordList, minPricePesos, USD_TO_PESOS) {
                                 url: `https://www.bavastronline.com.uy/lot/${lotItem.id}`,
                                 basePrice: lotItem.lot.base_price,
                                 currentPrice: lotItem.best_price,
-                                currencyPrefix
+                                currencyPrefix,
+                                isNew: bavasIsNew
                             });
                         }
                     }
@@ -345,6 +347,7 @@ async function fetchArechagaLots(keywordList, minPricePesos, USD_TO_PESOS) {
                         // Arechaga/ReySubastas text title often has the lot number if it's not in id_lot easily, but usually id_lot is the lot number or order
                         let lotNum = lot.id_lot || '';
 
+                        const arecIsNew = !cachedLotIds.has(lotId);
                         matchingLots.push({
                             source: 'Arechaga',
                             auctionId: auction.id,
@@ -357,7 +360,8 @@ async function fetchArechagaLots(keywordList, minPricePesos, USD_TO_PESOS) {
                             url: `https://arechaga.com.uy/lotes/${lot.id}`,
                             basePrice: lot.price_base,
                             currentPrice: lot.offer || lot.bestOffer || 0,
-                            currencyPrefix: isUsd ? 'USD' : '$'
+                            currencyPrefix: isUsd ? 'USD' : '$',
+                            isNew: arecIsNew
                         });
                     }
                 }
@@ -448,6 +452,7 @@ async function fetchReySubastasLots(keywordList, minPricePesos, USD_TO_PESOS) {
 
                         let lotNum = lot.id_lot || '';
 
+                        const reyIsNew = !cachedLotIds.has(lotId);
                         matchingLots.push({
                             source: 'ReySubastas',
                             auctionId: auction.id,
@@ -460,7 +465,8 @@ async function fetchReySubastasLots(keywordList, minPricePesos, USD_TO_PESOS) {
                             url: `https://reysubastas.com/lotes/${lot.id}`,
                             basePrice: lot.price_base,
                             currentPrice: lot.offer || lot.bestOffer || 0,
-                            currencyPrefix: isUsd ? 'USD' : '$'
+                            currencyPrefix: isUsd ? 'USD' : '$',
+                            isNew: reyIsNew
                         });
                     }
                 }
@@ -571,6 +577,7 @@ async function fetchCastellsLots(keywordList, minPricePesos, USD_TO_PESOS) {
                                     }
                                 }
 
+                                const castIsNew = !cachedLotIds.has(lotId);
                                 matchingLots.push({
                                     source: 'Castells',
                                     auctionId: auction.RemateId,
@@ -583,7 +590,8 @@ async function fetchCastellsLots(keywordList, minPricePesos, USD_TO_PESOS) {
                                     url: `https://subastascastells.com/${lot.DetalleUrl}`,
                                     basePrice: lot.LotePrecioSalidaValorWF || lot.LotePrecioSalida || 0,
                                     currentPrice: lot.ValorActual || 0,
-                                    currencyPrefix: lot.LotePrecioSalidaMonedaWF || 'USD'
+                                    currencyPrefix: lot.LotePrecioSalidaMonedaWF || 'USD',
+                                    isNew: castIsNew
                                 });
                             }
                         }
@@ -728,6 +736,7 @@ async function fetchRemotesLots(keywordList, minPricePesos) {
                         } catch(e){}
                     }
 
+                    const remIsNew = !cachedLotIds.has(lotId);
                     matchingLots.push({
                         source: `Remotes/${auctioneer}`,
                         auctionId: auctionId,
@@ -740,7 +749,8 @@ async function fetchRemotesLots(keywordList, minPricePesos) {
                         url: lot.link,
                         basePrice: 0,
                         currentPrice: 0,
-                        currencyPrefix: '$'
+                        currencyPrefix: '$',
+                        isNew: remIsNew
                     });
                 }
             }

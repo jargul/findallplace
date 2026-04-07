@@ -130,7 +130,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const lotNumStr = item.lotNumber ? `Lote ${escapeHtml(item.lotNumber)}` : '';
                 const endDateStr = item.endDate ? ` | Termina: ${escapeHtml(item.endDate)}` : '';
                 
+                const newBadgeHtml = item.isNew ? `<div class="new-badge">✨ NUEVO</div>` : '';
+                
                 card.innerHTML = `
+                    ${newBadgeHtml}
                     <div class="source-badge ${sourceClass}">${item.source}</div>
                     ${imageHtml}
                     <div class="card-content">
