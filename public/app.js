@@ -229,7 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const message = `Lote Subasta: ${currentAlarmItem.description?.substring(0, 30) || 'Cierre'}`;
             
             // Intent para abrir el reloj en Android con la alarma configurada
-            const intentUrl = `intent://#Intent;action=android.intent.action.SET_ALARM;i:hour=${hour};i:minutes=${minutes};s:message=${encodeURIComponent(message)};b:skipUi=false;end`;
+            // Usamos los nombres completos de los extras para máxima compatibilidad
+            const intentUrl = `intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${hour};i.android.intent.extra.alarm.MINUTES=${minutes};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(message)};B.android.intent.extra.alarm.SKIP_UI=false;end`;
             window.location.href = intentUrl;
             alarmModal.style.display = 'none';
         });
