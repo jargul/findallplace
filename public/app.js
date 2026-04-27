@@ -146,9 +146,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentAlarmItem = null;
 
     // Detectar si es Android para mostrar botón de Alarma de Reloj
+    const alarmAndroidHint = document.getElementById('alarmAndroidHint');
     const isAndroid = /Android/i.test(navigator.userAgent);
     if (isAndroid && alarmAndroid) {
         alarmAndroid.style.display = 'block';
+        if (alarmAndroidHint) alarmAndroidHint.style.display = 'block';
     }
 
     function updateAndroidIntent() {
@@ -162,8 +164,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const minutes = alarmTime.getMinutes();
         const message = `Lote Subasta: ${currentAlarmItem.description?.substring(0, 30) || 'Cierre'}`;
         
-        // intent:// requiere host para que Chrome lo parsee correctamente; SKIP_UI=true agrega la alarma sin confirmar
-        const intentUrl = `intent://alarm#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${hour};i.android.intent.extra.alarm.MINUTES=${minutes};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(message)};B.android.intent.extra.alarm.SKIP_UI=true;end`;
+        // Sin host para que Android no agregue un data URI que rompe el match de SET_ALARM
+        // SKIP_UI=false abre la app de Reloj con la hora pre-cargada; el usuario presiona Guardar
+        const intentUrl = `intent://#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${hour};i.android.intent.extra.alarm.MINUTES=${minutes};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(message)};B.android.intent.extra.alarm.SKIP_UI=false;end`;
         
         alarmAndroid.href = intentUrl;
     }
@@ -239,13 +242,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (alarmAndroid) {
-        alarmAndroid.addEventListener('click', () => {
-            const orig = alarmAndroid.textContent;
-            alarmAndroid.textContent = '✅ Alarma agregada';
-            setTimeout(() => {
-                alarmAndroid.textContent = orig;
-                alarmModal.style.display = 'none';
-            }, 1200);
+        alarmAndroid.addEventListener('click', (e) => {
+            e.preventDefault();
+            const url = alarmAndroid.href;
+            if (url) window.location.href = url;
+            setTimeout(() => { alarmModal.style.display = 'none'; }, 600);
         });
     }
 
