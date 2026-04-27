@@ -230,13 +230,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const minutes = alarmTime.getMinutes();
             const message = `Lote Subasta: ${currentAlarmItem.description?.substring(0, 30) || 'Cierre'}`;
             
-            console.log(`Configurando alarma para: ${hour}:${minutes} - Mensaje: ${message}`);
-            
             // Intent para abrir el reloj en Android
-            // Formato robusto para Chrome en Samsung
-            const intentUrl = `intent:#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${hour};i.android.intent.extra.alarm.MINUTES=${minutes};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(message)};B.android.intent.extra.alarm.SKIP_UI=false;end`;
+            // Probamos con intent:// y duplicando los extras para mayor compatibilidad
+            const intentUrl = `intent://#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${hour};i.android.intent.extra.alarm.MINUTES=${minutes};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(message)};i.hour=${hour};i.minutes=${minutes};S.message=${encodeURIComponent(message)};B.android.intent.extra.alarm.SKIP_UI=false;end`;
             
             try {
+                // Informar al usuario la hora que se va a setear (útil si el intent falla en abrir la app)
+                console.log("Intent URL:", intentUrl);
+                
                 const a = document.createElement('a');
                 a.href = intentUrl;
                 document.body.appendChild(a);
@@ -245,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Pequeño feedback visual
                 const originalText = alarmAndroid.textContent;
-                alarmAndroid.textContent = '✅ Alarma Enviada';
+                alarmAndroid.textContent = '✅ Enviado';
                 setTimeout(() => {
                     alarmAndroid.textContent = originalText;
                     alarmModal.style.display = 'none';

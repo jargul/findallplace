@@ -1,184 +1,258 @@
 {
   "bavastro": {
     "2880": {
-      "termometro": []
+      "termometro": [],
+      "farol": [
+        "2123306"
+      ]
     },
     "2888": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2890": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2896": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2897": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2905": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2908": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2910": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2911": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2912": {
-      "termometro": []
+      "termometro": [],
+      "farol": [
+        "2129177",
+        "2128996",
+        "2128971"
+      ]
     },
     "2913": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2914": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2916": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2917": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     }
   },
   "arechaga": {
     "131": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     }
   },
   "castells": {
     "2389": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2512": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2526": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2554": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2561": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2572": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2584": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2587": {
       "termometro": [
         "526910",
         "527018"
+      ],
+      "farol": [
+        "526881",
+        "526888"
       ]
     },
     "2591": {
-      "termometro": []
+      "termometro": [],
+      "farol": [
+        "525314",
+        "525358",
+        "525378"
+      ]
     },
     "2592": {
       "termometro": [
         "526664"
+      ],
+      "farol": [
+        "526566",
+        "526588",
+        "526781",
+        "526814"
       ]
     },
     "2597": {
-      "termometro": []
+      "termometro": [],
+      "farol": [
+        "525622"
+      ]
     },
     "2598": {
-      "termometro": []
+      "termometro": [],
+      "farol": [
+        "526049",
+        "526050"
+      ]
     },
     "2601": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2602": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2603": {
-      "termometro": []
+      "termometro": [],
+      "farol": [
+        "527523"
+      ]
     },
     "2604": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2605": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "2607": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     }
   },
   "reysubastas": {
     "99": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "100": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "101": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "102": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "103": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "105": {
-      "termometro": []
+      "termometro": [],
+      "farol": []
     }
   },
   "remotes": {
     "3964": {
       "_auctioneer": "Vip Subastas",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6107": {
       "_auctioneer": "Rafael Cardozo",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6339": {
       "_auctioneer": "BottoRemates",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6382": {
       "_auctioneer": "Remates República",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6442": {
       "_auctioneer": "Fabian Vanoli",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6446": {
       "_auctioneer": "Micaela Cuello Tarusselli",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6457": {
       "_auctioneer": "Mage Remates",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6469": {
       "_auctioneer": "Hugo Daniel Nalerio Hernández",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6491": {
       "_auctioneer": "Uruguay Remates",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6512": {
       "_auctioneer": "Claudia Fabiana Rodríguez Rodríguez",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6527": {
       "_auctioneer": "Remates Carvallo",
@@ -195,97 +269,142 @@
       "termometro": [
         "2",
         "40"
-      ]
+      ],
+      "farol": []
     },
     "6542": {
       "_auctioneer": "Natalia Roca",
-      "_prices": {},
-      "termometro": []
+      "_prices": {
+        "99": {
+          "current": 250,
+          "base": 0
+        }
+      },
+      "termometro": [],
+      "farol": [
+        "99"
+      ]
     },
     "6561": {
       "_auctioneer": "Remates del Cerro",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6571": {
       "_auctioneer": "Locos de Remate",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6589": {
       "_auctioneer": "Emilio Baptista Martínez",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6593": {
       "_auctioneer": "ElEjido",
-      "_prices": {},
-      "termometro": []
+      "_prices": {
+        "88": {
+          "current": 200,
+          "base": 0
+        }
+      },
+      "termometro": [],
+      "farol": [
+        "88"
+      ]
     },
     "6598": {
       "_auctioneer": "Remates del Cerro",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6611": {
       "_auctioneer": "ElEjido",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6613": {
       "_auctioneer": "Remates República",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6614": {
       "_auctioneer": "Enrique Parentini",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6617": {
       "_auctioneer": "Subastas Pando",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6618": {
       "_auctioneer": "Martin Palermo",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6621": {
       "_auctioneer": "Ana Paula Buela Salato",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6629": {
       "_auctioneer": "Ana Paula Buela Salato",
-      "_prices": {},
-      "termometro": []
+      "_prices": {
+        "7": {
+          "current": 650,
+          "base": 0
+        },
+        "8": {
+          "current": 650,
+          "base": 0
+        }
+      },
+      "termometro": [],
+      "farol": [
+        "7",
+        "8"
+      ]
     },
     "6636": {
       "_auctioneer": "El Paso Remates",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6637": {
       "_auctioneer": "Stajano Remates",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6639": {
       "_auctioneer": "Verónica Aristegui Díaz",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6642": {
       "_auctioneer": "Martin Palermo",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6643": {
       "_auctioneer": "Martin Palermo",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6644": {
       "_auctioneer": "Martin Palermo",
@@ -297,27 +416,39 @@
       },
       "termometro": [
         "17"
-      ]
+      ],
+      "farol": []
     },
     "6645": {
       "_auctioneer": "Micaela Cuello Tarusselli",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6647": {
       "_auctioneer": "Rincón del Vintage",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6651": {
       "_auctioneer": "Mage Remates",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6654": {
       "_auctioneer": "Escritorio JOFFRÈ",
-      "_prices": {},
-      "termometro": []
+      "_prices": {
+        "7": {
+          "current": 5500,
+          "base": 0
+        }
+      },
+      "termometro": [],
+      "farol": [
+        "7"
+      ]
     },
     "6655": {
       "_auctioneer": "Locos de Remate",
@@ -334,57 +465,80 @@
       "termometro": [
         "41",
         "78"
-      ]
+      ],
+      "farol": []
     },
     "6656": {
       "_auctioneer": "Escritorio Puglia",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6658": {
       "_auctioneer": "Elena María Guerra Rodríguez",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6666": {
       "_auctioneer": "Marcelo García",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6668": {
       "_auctioneer": "Rey Antigüedades & Subastas",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6669": {
       "_auctioneer": "Claudia Fabiana Rodríguez Rodríguez",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6671": {
       "_auctioneer": "Gardiol y otros",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6672": {
       "_auctioneer": "Martin Gimenez",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6673": {
       "_auctioneer": "Remates Carvallo",
-      "_prices": {},
-      "termometro": []
+      "_prices": {
+        "13": {
+          "current": 200,
+          "base": 0
+        },
+        "125": {
+          "current": 200,
+          "base": 0
+        }
+      },
+      "termometro": [],
+      "farol": [
+        "13",
+        "125"
+      ]
     },
     "6674": {
       "_auctioneer": "Escritorio Puglia",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6676": {
       "_auctioneer": "Gonzalo Sebastián Aguiar Mesa",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6679": {
       "_auctioneer": "Verónica Aristegui Díaz",
@@ -396,47 +550,63 @@
       },
       "termometro": [
         "4"
-      ]
+      ],
+      "farol": []
     },
     "6680": {
       "_auctioneer": "Gardiol y otros",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6681": {
       "_auctioneer": "Verónica Aristegui Díaz",
-      "_prices": {},
-      "termometro": []
+      "_prices": {
+        "89": {
+          "current": 7900,
+          "base": 0
+        }
+      },
+      "termometro": [],
+      "farol": [
+        "89"
+      ]
     },
     "6682": {
       "_auctioneer": "Escritorio JOFFRÈ",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6683": {
       "_auctioneer": "Ruíz Díaz",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6684": {
       "_auctioneer": "Pablo Barrientos",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6690": {
       "_auctioneer": "Emilio Baptista Martínez",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6692": {
       "_auctioneer": "Gardiol y otros",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     },
     "6693": {
       "_auctioneer": "Import Remates",
       "_prices": {},
-      "termometro": []
+      "termometro": [],
+      "farol": []
     }
   }
 }

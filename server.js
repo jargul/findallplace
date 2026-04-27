@@ -598,7 +598,9 @@ async function fetchCastellsLots(keywordList, minPricePesos, USD_TO_PESOS) {
                                 const maxPInPesos = isUsd ? maxP * USD_TO_PESOS : maxP;
                                 if (maxPInPesos < minPricePesos) continue;
 
-                                let rawDate = lot.LoteComienzoCierre || lot.LoteComienzoCierreWF || lot.LoteCierre || lot.LoteCierreWF || auction.RemateCierre || '';
+                                const isInvalidDate = (s) => !s || s.startsWith('0000') || s.includes('01/01/0001');
+                                let rawDate = [lot.LoteComienzoCierre, lot.LoteComienzoCierreWF, lot.LoteCierre, lot.LoteCierreWF, auction.RemateCierre].find(d => !isInvalidDate(d)) || '';
+                                
                                 let formattedDate = '';
                                 let fullIsoDate = ''; // Para la alarma
                                 if (rawDate) {
@@ -613,11 +615,10 @@ async function fetchCastellsLots(keywordList, minPricePesos, USD_TO_PESOS) {
                                         // "2026-04-27T23:02:00" o "27/04/2026 | 23:02"
                                         if (rawDate.includes('|')) {
                                             const parts = rawDate.split('|')[0].trim().split('/');
-                                            if (parts.length === 3) formattedDate = `${parts[0]}/${parts[1]}/${parts[2].substring(2)}`;
-                                            // intentamos sacar la hora también
+                                            if (parts.length === 3) formattedDate = `${parts[0].padStart(2,'0')}/${parts[1].padStart(2,'0')}/${parts[2].substring(2)}`;
                                             const timePart = rawDate.split('|')[1]?.trim();
                                             if (timePart && parts.length === 3) {
-                                                fullIsoDate = `${parts[2]}-${parts[1]}-${parts[0]}T${timePart}:00`;
+                                                fullIsoDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}T${timePart}:00`;
                                             }
                                         } else if (rawDate.includes('T')) {
                                             const d = new Date(rawDate);
