@@ -145,30 +145,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const alarmCancel   = document.getElementById('alarmCancelBtn');
     let currentAlarmItem = null;
 
-    // Detectar si es Android para mostrar botón de Alarma de Reloj
+    // Detectar si es Android (nativo via bridge, o Chrome Android)
     const alarmAndroidHint = document.getElementById('alarmAndroidHint');
-    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isNativeApp = !!window.BuscoLotesAlarm;
+    const isAndroid = isNativeApp || /Android/i.test(navigator.userAgent);
     if (isAndroid && alarmAndroid) {
         alarmAndroid.style.display = 'block';
-        if (alarmAndroidHint) alarmAndroidHint.style.display = 'block';
+        if (alarmAndroidHint) alarmAndroidHint.style.display = isNativeApp ? 'none' : 'block';
+    }
+
+    function getAlarmParams() {
+        if (!alarmDateTime.value) return null;
+        const closeTime = new Date(alarmDateTime.value);
+        if (isNaN(closeTime)) return null;
+        const alarmTime = new Date(closeTime.getTime() - 15 * 60 * 1000);
+        return {
+            hour: alarmTime.getHours(),
+            minutes: alarmTime.getMinutes(),
+            message: `Lote Subasta: ${currentAlarmItem.description?.substring(0, 30) || 'Cierre'}`
+        };
     }
 
     function updateAndroidIntent() {
-        if (!isAndroid || !alarmAndroid || !currentAlarmItem || !alarmDateTime.value) return;
-        
-        const closeTime = new Date(alarmDateTime.value);
-        if (isNaN(closeTime)) return;
-        
-        const alarmTime = new Date(closeTime.getTime() - 15 * 60 * 1000);
-        const hour = alarmTime.getHours();
-        const minutes = alarmTime.getMinutes();
-        const message = `Lote Subasta: ${currentAlarmItem.description?.substring(0, 30) || 'Cierre'}`;
-        
-        // Sin host para que Android no agregue un data URI que rompe el match de SET_ALARM
-        // SKIP_UI=false abre la app de Reloj con la hora pre-cargada; el usuario presiona Guardar
-        const intentUrl = `intent://#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${hour};i.android.intent.extra.alarm.MINUTES=${minutes};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(message)};B.android.intent.extra.alarm.SKIP_UI=false;end`;
-        
-        alarmAndroid.href = intentUrl;
+        if (!isAndroid || !alarmAndroid || !currentAlarmItem) return;
+        if (isNativeApp) return; // bridge no usa href
+        const p = getAlarmParams();
+        if (!p) return;
+        alarmAndroid.href = `intent://#Intent;action=android.intent.action.SET_ALARM;i.android.intent.extra.alarm.HOUR=${p.hour};i.android.intent.extra.alarm.MINUTES=${p.minutes};S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent(p.message)};B.android.intent.extra.alarm.SKIP_UI=false;end`;
     }
 
     // Actualizar intent cuando cambie la fecha/hora en el modal
@@ -244,25 +247,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (alarmAndroid) {
         alarmAndroid.addEventListener('click', (e) => {
             e.preventDefault();
+            if (!currentAlarmItem || !alarmDateTime.value) {
+                alert('Por favor ingresá la fecha y hora de cierre.');
+                return;
+            }
+            const p = getAlarmParams();
+            if (!p) { alert('Fecha inválida.'); return; }
+
+            if (isNativeApp) {
+                // Bridge nativo: llama Java directamente, funciona en la app Android
+                window.BuscoLotesAlarm.setAlarm(p.hour, p.minutes, p.message);
+                alarmModal.style.display = 'none';
+                return;
+            }
+
+            // Fallback Chrome Android: intent URL con detección de si abrió el reloj
             const url = alarmAndroid.href;
             if (!url) return;
-
-            // Detectar si Chrome abrió la app de Reloj: cuando Android cambia de app,
-            // la página queda en background y document.hidden se vuelve true
             let clockOpened = false;
             const onVis = () => { if (document.hidden) clockOpened = true; };
             document.addEventListener('visibilitychange', onVis);
-
             window.location.href = url;
-
-            // Después de 3 segundos: si la página sigue visible, el intent falló
             setTimeout(() => {
                 document.removeEventListener('visibilitychange', onVis);
                 alarmModal.style.display = 'none';
                 if (!clockOpened) {
-                    // El app de Reloj no respondió — ofrecer ICS como fallback
                     setTimeout(() => {
-                        if (confirm('La app de Reloj no respondió.\n¿Descargar recordatorio de calendario en su lugar?')) {
+                        if (confirm('La app de Reloj no respondió.\n¿Descargar recordatorio de calendario?')) {
                             alarmConfirm.click();
                         }
                     }, 150);
